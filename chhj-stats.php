@@ -1,5 +1,10 @@
 <?php
-$date = $args[0];
+$date = ( isset( $args[0] ) )? $args[0] : null ;
+if( empty( $date ) ){
+  $timestamp = current_time( 'mysql' );
+  $dateObj = date_create( $timestamp );
+  $date = date_format( $dateObj, 'Y-m');
+}
 WP_CLI::line( '👉 $date = ' . $date );
 
 $query_types = [ 'response_code', 'organization', 'api_response' ];
