@@ -1,6 +1,18 @@
 <?php
 /**
- * 1ST POSITIONAL ARG
+ * This file implements chhj statistics. Run it with `help` as
+ * the first positional argument to output the help and exit.
+ *
+ * @author     MWENDER
+ * @since      2023
+ */
+if( isset( $args[0] ) && in_array( $args[0], [ 'help', 'h' ] ) ){
+  WP_CLI::line( "This script accepts 3 positional arguments:\n\n  • \$date - specify the month for the query in YYYY-MM. When empty, defaults to the current month.\n  • \$query_type - can be `response_code` (default), `organization`, or `api_response`.\n  • \$list_donations - When TRUE, lists all donations NOT belonging to `PickUpMyDonation.com`.");
+  exit();
+}
+
+/**
+ * 1ST POSITIONAL ARG - $date
  *
  * Use the 1st positional argument to specify the $date for our stats in YYYY-MM format.
  *
@@ -16,7 +28,7 @@ WP_CLI::line( '👉 $date = ' . $date );
 
 $query_types = [ 'response_code', 'organization', 'api_response' ];
 /**
- * 2ND POSITIONAL ARG
+ * 2ND POSITIONAL ARG - $query_type
  *
  * Use the 2nd positional argument to specify the $query_type:
  *
@@ -32,7 +44,7 @@ $query_type = ( ! empty( $args[1] ) && in_array( $args[1], $query_types ) )? $ar
 WP_CLI::line( '👉 $query_type = ' . $query_type );
 
 /**
- * 3RD POSITIONAL ARG
+ * 3RD POSITIONAL ARG - $list_donations
  *
  * Output the list of donations by setting $list_donations to TRUE.
  *
@@ -85,7 +97,8 @@ switch ( $query_type ) {
 $donations = get_posts( $args );
 
 if( $list_donations ){
-  foreach ($donations as $donation ) {
+  WP_CLI::line( '🔔 Listing donations where organization name is NOT `PickUpMyDonation.com`:' );
+  foreach ( $donations as $donation ) {
     $organization_name = get_post_meta( $donation->ID, '_organization_name', true );
     if( 'PickUpMyDonation.com' != $organization_name )
       WP_CLI::line( '📦 #' . $donation->ID . ' ' . get_the_title( $donation->ID ) . ' - ' . $organization_name );
