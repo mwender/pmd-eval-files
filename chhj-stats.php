@@ -1,4 +1,11 @@
 <?php
+/**
+ * 1ST POSITIONAL ARG
+ *
+ * Use the 1st positional argument to specify the $date for our stats in YYYY-MM format.
+ *
+ * @var        string
+ */
 $date = ( isset( $args[0] ) )? $args[0] : null ;
 if( empty( $date ) ){
   $timestamp = current_time( 'mysql' );
@@ -8,9 +15,29 @@ if( empty( $date ) ){
 WP_CLI::line( '👉 $date = ' . $date );
 
 $query_types = [ 'response_code', 'organization', 'api_response' ];
+/**
+ * 2ND POSITIONAL ARG
+ *
+ * Use the 2nd positional argument to specify the $query_type:
+ *
+ * Query types:
+ *
+ * • response_code (default) - queries donations via the `api_response_code` meta field
+ * • organization - queries donations via the `_organization_name` meta field
+ * • api_response - queries donations via the `api_response` meta field
+ *
+ * @var        string
+ */
 $query_type = ( ! empty( $args[1] ) && in_array( $args[1], $query_types ) )? $args[1] : 'api_response';
 WP_CLI::line( '👉 $query_type = ' . $query_type );
 
+/**
+ * 3RD POSITIONAL ARG
+ *
+ * Output the list of donations by setting $list_donations to TRUE.
+ *
+ * @var        bool
+ */
 $list_donations = ( ! empty( $args[2] ) && in_array( $args[2], [ 'TRUE', 'true', '1' ] ) )? true : false ;
 if( $list_donations )
   WP_CLI::line( '👉 We are listing donations...' );
