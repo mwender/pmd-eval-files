@@ -7,7 +7,7 @@
  * @since      2023
  */
 if( isset( $args[0] ) && in_array( $args[0], [ 'help', 'h' ] ) ){
-  WP_CLI::line( "This script accepts 3 positional arguments:\n\n  • \$date - specify the month for the query in YYYY-MM. When empty, defaults to the current month.\n  • \$query_type - can be `response_code` (default), `organization`, or `api_response`.\n  • \$list_donations - When TRUE, lists all donations NOT belonging to `PickUpMyDonation.com`.");
+  WP_CLI::line( "This script accepts 2 positional arguments:\n\n  • \$date - specify the month for the query in YYYY-MM. When empty, defaults to the current month.\n  • \$list_donations - When TRUE, lists all donations NOT belonging to `PickUpMyDonation.com`.");
   exit();
 }
 
@@ -25,35 +25,6 @@ if( empty( $date ) ){
   $date = date_format( $dateObj, 'Y-m');
 }
 WP_CLI::line( '👉 $date = ' . $date );
-
-$query_types = [ 'response_code', 'organization', 'api_response' ];
-/**
- * 2ND POSITIONAL ARG - $query_type
- *
- * Use the 2nd positional argument to specify the $query_type:
- *
- * Query types:
- *
- * • response_code (default) - queries donations via the `api_response_code` meta field
- * • organization - queries donations via the `_organization_name` meta field
- * • api_response - queries donations via the `api_response` meta field
- *
- * @var        string
- */
-$query_type = ( ! empty( $args[1] ) && in_array( $args[1], $query_types ) )? $args[1] : 'api_response';
-WP_CLI::line( '👉 $query_type = ' . $query_type );
-
-/**
- * 3RD POSITIONAL ARG - $list_donations
- *
- * Output the list of donations by setting $list_donations to TRUE.
- *
- * @var        bool
- */
-$list_donations = ( ! empty( $args[2] ) && in_array( $args[2], [ 'TRUE', 'true', '1' ] ) )? true : false ;
-if( $list_donations )
-  WP_CLI::line( '👉 We are listing donations...' );
-
 if( ! stristr( $date, '-' ) || 7 != strlen( $date ) || empty( $date ) || '-' != substr( $date, 4, 1 ) )
   WP_CLI::error( '🚨 Please provide a month in the format YYYY-MM as the first positional argument when calling this file.');
 
@@ -62,6 +33,17 @@ $year = $date_array[0];
 $month = $date_array[1];
 
 WP_CLI::line( '$year = ' . $year . "\n" . '$month = ' . $month );
+
+/**
+ * 2ND POSITIONAL ARG - $list_donations
+ *
+ * Output the list of donations by setting $list_donations to TRUE.
+ *
+ * @var        bool
+ */
+$list_donations = ( ! empty( $args[1] ) && in_array( $args[1], [ 'TRUE', 'true', '1' ] ) )? true : false ;
+if( $list_donations )
+  WP_CLI::line( '👉 We are listing donations...' );
 
 $args = [
   'post_type'       => 'donation',
@@ -73,61 +55,96 @@ $args = [
       'year' => $year,
       'month' => $month,
     ],
-  ]
+  ],
+  'meta_query'  => [
+    'relation'  => 'OR',
+    [
+      'key'     => '_organization_name',
+      'value'   => 'College Hunks',
+      'type'    => 'CHAR',
+      'compare' => 'LIKE',
+    ],
+    [
+      'key'     => '_organization_name',
+      'value'   => 'PickUpMyDonation.com',
+      'type'    => 'CHAR',
+      'compare' => '=',
+    ],
+  ],
 ];
-switch ( $query_type ) {
-  case 'organization':
-    $args['meta_key'] = '_organization_name';
-    $args['meta_value'] = 'PickUpMyDonation.com';
-    $args['meta_type']  = 'CHAR';
-    break;
-
-  case 'api_response':
-    $args['meta_key'] = 'api_response';
-    $args['meta_compare'] = 'EXISTS';
-    break;
-
-  default:
-    $args['meta_key'] = 'api_response_code';
-    $args['meta_value'] = 200;
-    $args['meta_type'] = 'NUMERIC';
-    break;
-}
 
 $donations = get_posts( $args );
 
 if( $list_donations ){
-  WP_CLI::line( '🔔 Listing donations where organization name is NOT `PickUpMyDonation.com`:' );
+  //WP_CLI::line( '👋 Listing donations where organization name is NOT `PickUpMyDonation.com`:' );
+  WP_CLI::line( 'Building Table...' );
+  $rows = [];
+  $row = 1;
   foreach ( $donations as $donation ) {
     $organization_name = get_post_meta( $donation->ID, '_organization_name', true );
-    if( 'PickUpMyDonation.com' != $organization_name )
-      WP_CLI::line( '📦 #' . $donation->ID . ' ' . get_the_title( $donation->ID ) . ' - ' . $organization_name );
+    //if( 'PickUpMyDonation.com' != $organization_name ):
+      //WP_CLI::line( '📦 #' . $donation->ID . ' ' . get_the_title( $donation->ID ) . ' - ' . $organization_name );
+      $response_code = get_post_meta( $donation->ID, 'api_response_code', true );
+      if( empty( $response_code ) )
+        $response_code = '🚨 EMPTY';
+      $rows[] = [
+        'No.' => $row,
+        'ID' => $donation->ID,
+        'Date' => get_the_date( 'Y-m-d H:i:s', $donation->ID ),
+        'Response Code' => $response_code,
+        'Title' => str_replace([ '&#8211;', '&amp;' ], [ '-', '&' ], get_the_title( $donation->ID ) ),
+        'Organization' => $organization_name,
+      ];
+    //endif;
+    $row++;
   }
+  WP_CLI\Utils\format_items( 'table', $rows, 'No.,ID,Date,Response Code,Title,Organization' );
 }
 WP_CLI::success( count( $donations ) . ' donations sent to CHHJ in ' . $date );
 $donation_counts = [
   'priority'      => 0,
   'non-priority'  => 0,
 ];
-if( 'api_response' == $query_type ){
-  foreach ( $donations as $donation ) {
-    $organization_name = get_post_meta( $donation->ID, '_organization_name', true );
-    if( 'PickUpMyDonation.com' == $organization_name ){
-      $donation_counts['non-priority']++;
-    } else {
-      $donation_counts['priority']++;
-    }
+
+$fails = 0;
+foreach ( $donations as $donation ) {
+  $organization_name = get_post_meta( $donation->ID, '_organization_name', true );
+  $response_code = get_post_meta( $donation->ID, 'api_response_code', true );
+  if( 200 != $response_code ){
+    $api_response = get_post_meta( $donation->ID, 'api_response', true );
+    if( empty( $api_response ) )
+      $fails++;
   }
-  WP_CLI::line( '  - ' . $donation_counts['non-priority'] . ' non-priority' . "\n" . '  - ' . $donation_counts['priority'] . ' priority' );
-
-  $donation_stats_option = get_option( 'chhj_donations' );
-  if( ! is_array( $donation_stats_option ) )
-    $donation_stats_option = [];
-
-  $donation_stats_option[ $date ] = [
-    'non-priority'  => $donation_counts['non-priority'],
-    'priority'      => $donation_counts['priority'],
-  ];
-  update_option( 'chhj_donations', $donation_stats_option );
+  if( 'PickUpMyDonation.com' == $organization_name ){
+    $donation_counts['non-priority']++;
+  } else {
+    $donation_counts['priority']++;
+  }
 }
 
+$failure_rate = ($fails/( $donation_counts['non-priority'] + $donation_counts['priority'] ) ) * 100;
+$success_rate = 100 - $failure_rate;
+$success_rate_percentage = number_format( $success_rate, 2 );
+
+$stats = [];
+$stats[] = [
+  'Month'         => $date,
+  'Total'         => $donation_counts['non-priority'] + $donation_counts['priority'],
+  'Non-Priority'  => $donation_counts['non-priority'],
+  'Priority'      => $donation_counts['priority'],
+  'Fails'         => $fails,
+  'Success Rate'  => $success_rate_percentage . '%',
+];
+WP_CLI\Utils\format_items( 'table', $stats, 'Month,Total,Non-Priority,Priority,Fails,Success Rate' );
+WP_CLI::line( 'NOTE: Success Rate is calculated by dividing fails by the total number of Non-Priority and Priority donations and subtracting from 100%.' );
+
+$donation_stats_option = get_option( 'chhj_donations' );
+if( ! is_array( $donation_stats_option ) )
+  $donation_stats_option = [];
+
+$donation_stats_option[ $date ] = [
+  'non-priority'  => $donation_counts['non-priority'],
+  'priority'      => $donation_counts['priority'],
+  'success_rate_percentage' => $success_rate_percentage,
+];
+update_option( 'chhj_donations', $donation_stats_option );
