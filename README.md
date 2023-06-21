@@ -8,6 +8,10 @@ This is a collection of PHP scripts to run under the WP CLI using `wp eval-file`
 
 ## Changelog
 
+### 1.2.0
+
+- Adding `list-orgs.php` for displaying a list of Organizations with their "Pick Up DOW".
+
 ### 1.1.0
 
 - Removing $query_type in favor of one query which retrieves all Non-Priority and Priority donations
