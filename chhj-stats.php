@@ -58,6 +58,7 @@ $args = [
   ],
   'meta_query'  => [
     'relation'  => 'OR',
+    /*
     [
       'key'     => '_organization_name',
       'value'   => 'College Hunks',
@@ -70,20 +71,25 @@ $args = [
       'type'    => 'CHAR',
       'compare' => '=',
     ],
+    /**/
+    [
+      'key'     => 'api_response',
+      'compare' => 'EXISTS',
+    ],
   ],
 ];
 
 $donations = get_posts( $args );
 
 if( $list_donations ){
-  //WP_CLI::line( '👋 Listing donations where organization name is NOT `PickUpMyDonation.com`:' );
+  WP_CLI::line( '👋 Listing donations where organization name is NOT `PickUpMyDonation.com`:' );
   WP_CLI::line( 'Building Table...' );
   $rows = [];
   $row = 1;
   foreach ( $donations as $donation ) {
     $organization_name = get_post_meta( $donation->ID, '_organization_name', true );
-    //if( 'PickUpMyDonation.com' != $organization_name ):
-      //WP_CLI::line( '📦 #' . $donation->ID . ' ' . get_the_title( $donation->ID ) . ' - ' . $organization_name );
+    if( 'PickUpMyDonation.com' != $organization_name ):
+      WP_CLI::line( '📦 #' . $donation->ID . ' ' . get_the_title( $donation->ID ) . ' - ' . $organization_name );
       $response_code = get_post_meta( $donation->ID, 'api_response_code', true );
       if( empty( $response_code ) )
         $response_code = '🚨 EMPTY';
@@ -92,15 +98,14 @@ if( $list_donations ){
         'ID' => $donation->ID,
         'Date' => get_the_date( 'Y-m-d H:i:s', $donation->ID ),
         'Response Code' => $response_code,
-        'Title' => str_replace([ '&#8211;', '&amp;' ], [ '-', '&' ], get_the_title( $donation->ID ) ),
+        'Title' => str_replace([ '&#8211;', '&amp;' ], [ '-', '&' ], substr( get_the_title( $donation->ID ), 0, 40 ) ),
         'Organization' => $organization_name,
       ];
-    //endif;
+    endif;
     $row++;
   }
   WP_CLI\Utils\format_items( 'table', $rows, 'No.,ID,Date,Response Code,Title,Organization' );
 }
-WP_CLI::success( count( $donations ) . ' donations sent to CHHJ in ' . $date );
 $donation_counts = [
   'priority'      => 0,
   'non-priority'  => 0,
@@ -109,11 +114,10 @@ $donation_counts = [
 $fails = 0;
 foreach ( $donations as $donation ) {
   $organization_name = get_post_meta( $donation->ID, '_organization_name', true );
-  $response_code = get_post_meta( $donation->ID, 'api_response_code', true );
-  if( 200 != $response_code ){
-    $api_response = get_post_meta( $donation->ID, 'api_response', true );
-    if( empty( $api_response ) )
-      $fails++;
+  $api_response = get_post_meta( $donation->ID, 'api_response', true );
+  if( stristr( $api_response, 'cURL Error' ) ){
+    $fails++;
+    WP_CLI::line('👉 ' . $fails . '.' . $organization_name . ' (' . $response_code . ') $api_response = ' . $api_response );
   }
   if( 'PickUpMyDonation.com' == $organization_name ){
     $donation_counts['non-priority']++;
@@ -145,6 +149,7 @@ if( ! is_array( $donation_stats_option ) )
 $donation_stats_option[ $date ] = [
   'non-priority'  => $donation_counts['non-priority'],
   'priority'      => $donation_counts['priority'],
+  'fails'         => $fails,
   'success_rate_percentage' => $success_rate_percentage,
 ];
 update_option( 'chhj_donations', $donation_stats_option );

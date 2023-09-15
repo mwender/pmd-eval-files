@@ -8,6 +8,11 @@ This is a collection of PHP scripts to run under the WP CLI using `wp eval-file`
 
 ## Changelog
 
+### 1.4.0
+
+- Adjusting `chhj-stats.php` meta query to only check if `api_response` exists.
+- Adding `fails` to stats we are storing.
+
 ### 1.3.0
 
 - Adding `export-orphaned-providers.php` for exporting a CSV of all Orphaned Providers.
