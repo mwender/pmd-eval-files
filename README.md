@@ -8,6 +8,9 @@ This is a collection of PHP scripts to run under the WP CLI using `wp eval-file`
 
 ## Changelog
 
+### 1.4.1
+- Adding `chhj-saved-stats.php`.
+
 ### 1.4.0
 
 - Adjusting `chhj-stats.php` meta query to only check if `api_response` exists.
