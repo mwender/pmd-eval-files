@@ -111,15 +111,15 @@ if( $list_donations ){
         'No.' => $row,
         'ID' => $donation->ID,
         'Date' => get_the_date( 'Y-m-d H:i:s', $donation->ID ),
-        'Response Code' => $response_code,
         'API Method'  => get_post_meta( $donation->ID, 'api_method', true ),
         'Title' => substr( $sanitized_title, 0, 40 ),
         'Organization' => $organization_name,
+        'Response Code' => $response_code,
       ];
     //endif;
     $row++;
   }
-  WP_CLI\Utils\format_items( 'table', $rows, 'No.,ID,Date,Response Code,API Method,Title,Organization' );
+  WP_CLI\Utils\format_items( 'table', $rows, 'No.,ID,Date,API Method,Title,Organization,Response Code' );
 }
 $donation_counts = [
   'priority'      => 0,
