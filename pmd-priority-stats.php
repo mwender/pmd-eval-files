@@ -29,7 +29,7 @@ if( $org_key ){
   $org_api_method =  $organizations[ $org_key ]['api_method'];
   WP_CLI::line( '⚙️ Organization: ' . $org_name );
 } else {
-  WP_CLI::error( 'Please specify your org key (chhj or 1800gj) with the 2nd positional argument.' );
+  WP_CLI::error( 'Please specify your org key (chhj or 1800gj) with the 1st positional argument.' );
 }
 
 /**
