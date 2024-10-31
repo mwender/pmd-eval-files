@@ -98,28 +98,32 @@ if( $list_donations ){
     $organization_name = get_post_meta( $donation->ID, '_organization_name', true );
     //if( 'PickUpMyDonation.com' != $organization_name ):
       $sanitized_title = str_replace([ '&#8211;', '&amp;' ], [ '-', '&' ], get_the_title( $donation->ID ) );
-      WP_CLI::line( '📦 #' . $donation->ID . ' ' . $sanitized_title . ' - ' . $organization_name );
+      //WP_CLI::line( '📦 #' . $donation->ID . ' ' . $sanitized_title . ' - ' . $organization_name );
       $response_code = get_post_meta( $donation->ID, 'api_response_code', true );
+      $response_message = get_post_meta( $donation->ID, 'api_response_message', true );
       if( empty( $response_code ) )
-        $response_code = '🚨 EMPTY';
+        $response_code = 'EMPTY';
+      //*
       if( 200 == $response_code ){
-        $response_code = WP_CLI::colorize( "%g{$response_code}%n" );
+        $response_code = '✅ ' . $response_code;
       } else {
-        $response_code = WP_CLI::colorize( "%r{$response_code}%n" );
+        $response_code = '🚨 ' . $response_code;
       }
+      /**/
       $rows[] = [
         'No.' => $row,
         'ID' => $donation->ID,
         'Date' => get_the_date( 'Y-m-d H:i:s', $donation->ID ),
+        'Code' => $response_code,
+        'Message' => $response_message,
         'API Method'  => get_post_meta( $donation->ID, 'api_method', true ),
         'Title' => substr( $sanitized_title, 0, 40 ),
         'Organization' => $organization_name,
-        'Response Code' => $response_code,
       ];
     //endif;
     $row++;
   }
-  WP_CLI\Utils\format_items( 'table', $rows, 'No.,ID,Date,API Method,Title,Organization,Response Code' );
+  WP_CLI\Utils\format_items( 'table', $rows, 'No.,ID,Date,Code,Message,API Method,Title,Organization' );
 }
 $donation_counts = [
   'priority'      => 0,
@@ -130,9 +134,11 @@ $fails = 0;
 foreach ( $donations as $donation ) {
   $organization_name = get_post_meta( $donation->ID, '_organization_name', true );
   $api_response = get_post_meta( $donation->ID, 'api_response', true );
-  if( stristr( $api_response, 'cURL Error' ) ){
+  $response_code = get_post_meta( $donation->ID, 'api_response_code', true );
+  $response_message = get_post_meta( $donation->ID, 'api_response_message', true );
+  if( 200 != $response_code  ){
     $fails++;
-    WP_CLI::line('👉 ' . $fails . '.' . $organization_name . ' (' . $response_code . ') $api_response = ' . $api_response );
+    WP_CLI::line('👉 #' . $donation->ID . ' ' . $organization_name . ' (' . $response_code . ' - ' . $response_message . ').' );
   }
   if( 'PickUpMyDonation.com' == $organization_name ){
     $donation_counts['non-priority']++;
