@@ -102,6 +102,11 @@ if( $list_donations ){
       $response_code = get_post_meta( $donation->ID, 'api_response_code', true );
       if( empty( $response_code ) )
         $response_code = '🚨 EMPTY';
+      if( 200 == $response_code ){
+        $response_code = WP_CLI::colorize( "%g{$response_code}%n" );
+      } else {
+        $response_code = WP_CLI::colorize( "%r{$response_code}%n" );
+      }
       $rows[] = [
         'No.' => $row,
         'ID' => $donation->ID,
