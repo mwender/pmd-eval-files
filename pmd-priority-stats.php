@@ -107,6 +107,9 @@ if( $list_donations ){
       if( 200 == $response_code ){
         $response_code = '✅ ' . $response_code;
       } else {
+        if( 404 == $response_code ){
+          $response_message.= ' (' . get_post_meta( $donation->ID, 'address_zip', true ) . ')';
+        }
         $response_code = '🚨 ' . $response_code;
       }
       /**/
